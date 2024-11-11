@@ -1,0 +1,10 @@
+# Tomcat
+server:
+  port: 8081
+
+# Spring
+spring:
+  application:
+    # 应用名称
+    name: gateway-demo
+
