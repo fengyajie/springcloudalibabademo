@@ -62,6 +62,8 @@
     <modules>
         <module>business-demo</module>
         <module>gateway-demo</module>
+        <module>api</module>
+        <module>consumer-demo</module>
     </modules>
 
     <build>

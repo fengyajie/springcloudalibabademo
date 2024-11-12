@@ -85,6 +85,12 @@
             <version>1.18.20</version>
         </dependency>
 
+        <dependency>
+            <groupId>com.common</groupId>
+            <artifactId>api</artifactId>
+            <version>0.0.1-SNAPSHOT</version>
+        </dependency>
+
     </dependencies>
 
     <build>
