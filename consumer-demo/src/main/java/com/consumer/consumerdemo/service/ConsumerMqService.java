@@ -20,7 +20,6 @@ public class ConsumerMqService implements RocketMQListener<MessageExt> {
 
         String body = new String(messageExt.getBody(), StandardCharsets.UTF_8);
         log.info("接收到的消息{}",body);
-        throw new RuntimeException();
-
+        //throw new RuntimeException();
     }
 }
