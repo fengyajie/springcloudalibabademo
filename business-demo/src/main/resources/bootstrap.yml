@@ -1,6 +1,6 @@
 # Tomcat
 server:
-  port: 8080
+  port: 8081
 
 # Spring
 spring:
@@ -9,7 +9,6 @@ spring:
     name: business-demo
   profiles:
     active: dev
-
 
   cloud:
     nacos:
@@ -26,5 +25,11 @@ spring:
 logging:
   root:
      level: info
+
+rocketmq:
+  name-server: 127.0.0.1:9876
+  producer:
+    group: business-producer-group
+
 
 
