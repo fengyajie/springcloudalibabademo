@@ -19,6 +19,11 @@ public class BusinessController {
 
     @GetMapping("/test")
     public String test(){
+        try {
+            Thread.sleep(2000);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
         log.info("log{}",xxl);
         return xxl;
     }
