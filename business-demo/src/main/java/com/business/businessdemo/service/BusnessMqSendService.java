@@ -1,4 +1,4 @@
-package com.business.businessdemo.controller.service;
+package com.business.businessdemo.service;
 
 import org.apache.rocketmq.client.producer.SendResult;
 import org.apache.rocketmq.client.producer.SendStatus;
