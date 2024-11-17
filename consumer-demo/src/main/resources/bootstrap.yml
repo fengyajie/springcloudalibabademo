@@ -10,9 +10,6 @@ spring:
   profiles:
     active: dev
 
-rocketmq:
-  name-server: 127.0.0.1:9876
-
   cloud:
     nacos:
       discovery:
@@ -46,5 +43,8 @@ hystrix:
 ribbon:
   ConnectTimeout: 3000
   ReadTimeout: 5000
+
+rocketmq:
+  name-server: 127.0.0.1:9876
 
 

@@ -7,4 +7,26 @@ spring:
   application:
     # 应用名称
     name: gateway-demo
+  profiles:
+    active: dev
+
+  cloud:
+    nacos:
+      discovery:
+        server-addr: 127.0.0.1:8848
+        namespace: public
+      config:
+        server-addr: 127.0.0.1:8848
+        # 配置文件格式
+        file-extension: yml
+        # 共享配置
+        shared-configs:
+          - application-${spring.profiles.active}.${spring.cloud.nacos.config.file-extension}
+
+    gateway:
+      routes:
+        - id: business-demo
+          uri: lb://business-demo
+          predicates:
+            - Path=/business/**
 
