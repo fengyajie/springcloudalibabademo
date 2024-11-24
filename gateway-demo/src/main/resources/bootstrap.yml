@@ -25,8 +25,9 @@ spring:
 
     gateway:
       routes:
-        - id: business-demo
-          uri: lb://business-demo
-          predicates:
-            - Path=/business/**
+        config:
+          data-id: gateway-routes  #动态路由
+          group: DEFAULT_GROUP
+          namespace: public
+
 
