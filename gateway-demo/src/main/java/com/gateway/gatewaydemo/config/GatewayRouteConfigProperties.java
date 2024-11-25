@@ -10,7 +10,10 @@ import org.springframework.context.annotation.Configuration;
 @RefreshScope
 @Data
 public class GatewayRouteConfigProperties {
+    private long DEFAULT_TIMEOUT = 30000;
     private String dataId;
     private String group;
     private String namespace;
+
+    private String serviceAddr;
 }

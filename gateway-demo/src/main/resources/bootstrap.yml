@@ -7,27 +7,27 @@ spring:
   application:
     # 应用名称
     name: gateway-demo
-  profiles:
-    active: dev
+  #profiles:
+   # active: dev
 
-  cloud:
-    nacos:
-      discovery:
-        server-addr: 127.0.0.1:8848
-        namespace: public
-      config:
-        server-addr: 127.0.0.1:8848
+  #cloud:
+   # nacos:
+    #  discovery:
+     #   server-addr: 127.0.0.1:8848
+      #config:
+       # server-addr: 127.0.0.1:8848
         # 配置文件格式
-        file-extension: yml
+        #file-extension: yml
         # 共享配置
-        shared-configs:
-          - application-${spring.profiles.active}.${spring.cloud.nacos.config.file-extension}
+        #shared-configs:
+         # - application-${spring.profiles.active}.${spring.cloud.nacos.config.file-extension}
 
-    gateway:
-      routes:
-        config:
-          data-id: gateway-routes  #动态路由
-          group: DEFAULT_GROUP
-          namespace: public
+gateway:
+    routes:
+      config:
+        dataId: gateway-routes  #动态路由
+        group: DEFAULT_GROUP
+        namespace: public
+        serviceAddr: 127.0.0.1:8848
 
 
