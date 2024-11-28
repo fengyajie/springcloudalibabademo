@@ -10,16 +10,16 @@ import java.nio.charset.StandardCharsets;
 
 @Slf4j
 @Component
-@RocketMQMessageListener(topic = "business_topic",consumerGroup = "consumer_mq_group")
-public class ConsumerMqService implements RocketMQListener<MessageExt> {
+//@RocketMQMessageListener(topic = "business_topic",consumerGroup = "consumer_mq_group")
+public class ConsumerMqService /*implements RocketMQListener<MessageExt>*/ {
 
 
 
-    @Override
+    /*@Override
     public void onMessage(MessageExt messageExt) {
 
         String body = new String(messageExt.getBody(), StandardCharsets.UTF_8);
         log.info("接收到的消息{}",body);
         //throw new RuntimeException();
-    }
+    }*/
 }

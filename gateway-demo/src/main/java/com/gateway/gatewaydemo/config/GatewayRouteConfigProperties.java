@@ -6,7 +6,7 @@ import org.springframework.cloud.context.config.annotation.RefreshScope;
 import org.springframework.context.annotation.Configuration;
 
 @Configuration
-@ConfigurationProperties(prefix = "gateway.routes.config")
+@ConfigurationProperties(prefix = "nacos.gateway.route.config")
 @RefreshScope
 @Data
 public class GatewayRouteConfigProperties {
