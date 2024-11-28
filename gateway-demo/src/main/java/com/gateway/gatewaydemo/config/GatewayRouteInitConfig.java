@@ -1,10 +1,15 @@
 package com.gateway.gatewaydemo.config;
 
+import com.alibaba.cloud.commons.lang.StringUtils;
+import com.alibaba.cloud.nacos.NacosConfigProperties;
 import com.alibaba.fastjson.JSON;
 import com.alibaba.nacos.api.NacosFactory;
 import com.alibaba.nacos.api.config.ConfigService;
 import com.alibaba.nacos.api.config.listener.Listener;
 import com.alibaba.nacos.api.exception.NacosException;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.gateway.gatewaydemo.service.DynamicRouteServiceImpl;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -14,6 +19,7 @@ import org.springframework.stereotype.Component;
 
 import javax.annotation.PostConstruct;
 import java.util.List;
+import java.util.Objects;
 import java.util.Properties;
 import java.util.concurrent.Executor;
 
@@ -21,75 +27,96 @@ import java.util.concurrent.Executor;
 @Component
 @DependsOn("gatewayRouteConfigProperties")
 public class GatewayRouteInitConfig {
-    @Autowired
-    private DynamicRouteServiceImpl dynamicRouteService;
-
-
-    private ConfigService configService;
 
     @Autowired
     private GatewayRouteConfigProperties gatewayRouteConfigProperties;
 
-    @PostConstruct
-    public void init() {
-        log.info("gateway route init...");
-        try{
-            configService = initConfigService();
-            if(configService == null){
-                log.warn("initConfigService fail");
-                return;
-            }
-            String configInfo = configService.getConfig(gatewayRouteConfigProperties.getDataId(), gatewayRouteConfigProperties.getGroup(), gatewayRouteConfigProperties.getDEFAULT_TIMEOUT());
-            log.info("获取网关当前配置:{}",configInfo);
-            List<RouteDefinition> definitionList = JSON.parseArray(configInfo, RouteDefinition.class);
-            for(RouteDefinition definition : definitionList){
-                log.info("update route : {}",definition.toString());
-                dynamicRouteService.add(definition);
-            }
-        } catch (Exception e) {
-            log.error("初始化网关路由时发生错误",e);
-        }
-        dynamicRouteByNacosListener(gatewayRouteConfigProperties.getDataId(),gatewayRouteConfigProperties.getNamespace());
-    }
+    @Autowired
+    private NacosConfigProperties nacosConfigProperties;
+
+    @Autowired
+    private DynamicRouteServiceImpl routeService;
 
     /**
-     * 监听Nacos下发的动态路由配置
-     * @param dataId
-     * @param group
+     * nacos 配置服务
      */
-    public void dynamicRouteByNacosListener (String dataId, String group){
+    private ConfigService configService;
+
+
+    private final ObjectMapper objectMapper = new ObjectMapper();
+
+    @PostConstruct
+    public void init() {
+        log.info("开始网关动态路由初始化...");
+        initConfigService();
+
         try {
-            configService.addListener(dataId, group, new Listener()  {
-                @Override
-                public void receiveConfigInfo(String configInfo) {
-                    log.info("进行网关更新:\n\r{}",configInfo);
-                    List<RouteDefinition> definitionList = JSON.parseArray(configInfo, RouteDefinition.class);
-                    log.info("update route : {}",definitionList.toString());
-                    dynamicRouteService.updateList(definitionList);
-                }
+            // getConfigAndSignListener()方法 发起长轮询和对dataId数据变更注册监听的操作
+            // getConfig 只是发送普通的HTTP请求
+            String initConfigInfo = configService.getConfigAndSignListener(gatewayRouteConfigProperties.getDataId(), gatewayRouteConfigProperties.getGroup(), nacosConfigProperties.getTimeout(), new Listener() {
                 @Override
                 public Executor getExecutor() {
-                    log.info("getExecutor\n\r");
                     return null;
                 }
+
+                @Override
+                public void receiveConfigInfo(String configInfo) {
+                    if (StringUtils.isNotEmpty(configInfo)) {
+                        log.info("接收到网关路由更新配置：{}", configInfo);
+                        List<RouteDefinition> routeDefinitions = null;
+                        try {
+                            routeDefinitions = objectMapper.readValue(configInfo, new TypeReference<List<RouteDefinition>>() {
+                            });
+                        } catch (JsonProcessingException e) {
+                            log.error("解析路由配置出错，" + e.getMessage(), e);
+                        }
+                        for (RouteDefinition definition : Objects.requireNonNull(routeDefinitions)) {
+                            routeService.updateById(definition);
+                        }
+
+                    } else {
+
+                        log.warn("当前网关无动态路由相关配置");
+
+                    }
+
+                }
+
             });
-        } catch (NacosException e) {
-            log.error("从nacos接收动态路由配置出错!!!",e);
+
+            log.info("获取网关当前动态路由配置:\r\n{}", initConfigInfo);
+            if (StringUtils.isNotEmpty(initConfigInfo)) {
+                List<RouteDefinition> routeDefinitions = objectMapper.readValue(initConfigInfo, new TypeReference<List<RouteDefinition>>() {
+
+                });
+
+                for (RouteDefinition definition : routeDefinitions) {
+                    routeService.add(definition);
+                }
+
+            } else {
+                log.warn("当前网关无动态路由相关配置");
+            }
+            log.info("结束网关动态路由初始化...");
+        } catch (Exception e) {
+
+            log.error("初始化网关路由时发生错误", e);
         }
     }
 
     /**
      * 初始化网关路由 nacos config
+     *
      * @return
      */
-    private ConfigService initConfigService(){
-        try{
+    private ConfigService initConfigService() {
+        try {
             Properties properties = new Properties();
-            properties.setProperty("serverAddr",gatewayRouteConfigProperties.getServiceAddr());
-            properties.setProperty("namespace",gatewayRouteConfigProperties.getNamespace());
-            return configService= NacosFactory.createConfigService(properties);
+            properties.setProperty("serverAddr", gatewayRouteConfigProperties.getServiceAddr());
+            properties.setProperty("namespace", gatewayRouteConfigProperties.getNamespace());
+            return configService = NacosFactory.createConfigService(properties);
         } catch (Exception e) {
-            log.error("初始化网关路由时发生错误",e);
+            log.error("初始化网关路由时发生错误", e);
             return null;
         }
     }

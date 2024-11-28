@@ -1,0 +1,98 @@
+gateway-routes:
+[
+
+    {
+
+        "predicates":[
+
+            {
+
+                "args":{
+
+                    "pattern":"/business/**"
+
+                },
+
+                "name":"Path"
+
+            }
+
+        ],
+
+        "id":"business-demo",
+
+        "filters":[
+
+            {
+
+                "args":{
+
+                    "parts":1
+
+                },
+
+                "name":"StripPrefix"
+
+            }
+
+        ],
+
+        "uri":"lb://business-demo",
+
+        "order":1
+
+    },
+     {
+
+        "predicates":[
+
+            {
+
+                "args":{
+
+                    "pattern":"/consumer/**"
+
+                },
+
+                "name":"Path"
+
+            }
+
+        ],
+
+        "id":"consumer-demo",
+
+        "filters":[
+
+            {
+
+                "args":{
+
+                    "parts":1
+
+                },
+
+                "name":"StripPrefix"
+
+            }
+
+        ],
+
+        "uri":"lb://consumer-demo",
+
+        "order":1
+
+    }
+]
+
+
+gateway:
+
+nacos:
+  gateway:
+    route:
+      config:
+        data-id: gateway-routes
+        group: DEFAULT_GROUP
+        namespace: c11b267c-2b04-42ec-9fe8-7146912aae93
+        serviceAddr: 127.0.0.1:8848
