@@ -10,11 +10,15 @@ spring:
   profiles:
     active: dev
 
+
   cloud:
     nacos:
       discovery:
         server-addr: 127.0.0.1:8848
         namespace: c11b267c-2b04-42ec-9fe8-7146912aae93
+        locator:
+          enable: true #开启从注册中心动态创建路由
+          lower-case-service-id: true # 使用小写服务名，默认是大写
       config:
         server-addr: 127.0.0.1:8848
         # 配置文件格式
@@ -23,7 +27,6 @@ spring:
         # 共享配置
         shared-configs:
           - application-${spring.profiles.active}.${spring.cloud.nacos.config.file-extension}
-
 
 
 

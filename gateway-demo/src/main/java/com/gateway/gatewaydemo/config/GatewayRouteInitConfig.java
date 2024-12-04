@@ -23,6 +23,9 @@ import java.util.Objects;
 import java.util.Properties;
 import java.util.concurrent.Executor;
 
+/**
+ * 动态路由方式1
+ */
 @Slf4j
 @Component
 @DependsOn("gatewayRouteConfigProperties")

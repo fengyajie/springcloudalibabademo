@@ -15,7 +15,7 @@ import reactor.core.publisher.Mono;
 import java.util.List;
 
 /**
- * 动态路由服务
+ * 动态路由服务 方式1
  */
 @Slf4j
 @Service

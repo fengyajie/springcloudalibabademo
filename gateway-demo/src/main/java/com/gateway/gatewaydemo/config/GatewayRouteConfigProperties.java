@@ -5,6 +5,9 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.cloud.context.config.annotation.RefreshScope;
 import org.springframework.context.annotation.Configuration;
 
+/**
+ * 动态路由方式1
+ */
 @Configuration
 @ConfigurationProperties(prefix = "nacos.gateway.route.config")
 @RefreshScope

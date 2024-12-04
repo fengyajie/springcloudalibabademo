@@ -1,3 +1,4 @@
+方式1：
 gateway-routes:
 [
 
@@ -96,3 +97,31 @@ nacos:
         group: DEFAULT_GROUP
         namespace: c11b267c-2b04-42ec-9fe8-7146912aae93
         serviceAddr: 127.0.0.1:8848
+
+
+ 方式2：
+ locator:
+           enable: true #开启从注册中心动态创建路由
+           lower-case-service-id: true # 使用小写服务名，默认是大写
+
+
+
+ gateway-demo-dev.yml
+
+spring:
+  cloud:
+    gateway:
+      routes:
+        - id: business-demo
+          uri: lb://business-demo
+          predicates:
+            - Path=/business/**
+          filters:
+            - StripPrefix=1
+
+        - id: consumer-demo
+          uri: lb://consumer-demo
+          predicates:
+            - Path=/consumer/**
+          filters:
+            - StripPrefix=1

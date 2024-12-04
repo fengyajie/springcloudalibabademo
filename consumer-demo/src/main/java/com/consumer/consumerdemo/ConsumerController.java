@@ -17,6 +17,11 @@ public class ConsumerController {
    @GetMapping("/getConsumer")
    public void getConsumer(){
        String test = remoteBusinessApi.test();
+       try {
+           Thread.sleep(10000);
+       } catch (InterruptedException e) {
+           e.printStackTrace();
+       }
        System.out.println(test);
    }
 }
