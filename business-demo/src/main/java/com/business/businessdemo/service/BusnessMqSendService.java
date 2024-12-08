@@ -20,7 +20,7 @@ public class BusnessMqSendService {
 
         boolean flag = true;
         String text1 = "发送消息:" + message;
-        SendResult sendResult1 = rocketMQTemplate.syncSend("business_topic", text1);
+        SendResult sendResult1 = rocketMQTemplate.syncSend("business_topic:tag1",text1);
         if(!SendStatus.SEND_OK.equals(sendResult1.getSendStatus())){
             flag = false;
         }
