@@ -36,7 +36,7 @@ class BusinessDemoApplicationTests {
 
         //indexService.createIndex();
 
-        String id = documentService.addDocument();
+        String id = documentService.addDocument("");
 
         documentService.getDocument(id);
 

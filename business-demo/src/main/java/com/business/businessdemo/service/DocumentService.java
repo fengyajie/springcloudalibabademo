@@ -3,9 +3,13 @@ package com.business.businessdemo.service;
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
 import lombok.extern.slf4j.Slf4j;
+import org.elasticsearch.action.DocWriteResponse;
 import org.elasticsearch.action.admin.indices.create.CreateIndexRequest;
 import org.elasticsearch.action.admin.indices.create.CreateIndexResponse;
 import org.elasticsearch.action.admin.indices.delete.DeleteIndexRequest;
+import org.elasticsearch.action.admin.indices.get.GetIndexRequest;
+import org.elasticsearch.action.bulk.BulkRequest;
+import org.elasticsearch.action.bulk.BulkResponse;
 import org.elasticsearch.action.delete.DeleteRequest;
 import org.elasticsearch.action.delete.DeleteResponse;
 import org.elasticsearch.action.get.GetRequest;
@@ -45,6 +49,10 @@ public class DocumentService {
 
     @Autowired
     private RestHighLevelClient restHighLevelClient;
+
+    public static String index = "extest";
+
+    public static String type = "doc";
 
     /**
      * 创建索引
@@ -87,7 +95,7 @@ public class DocumentService {
                     .endObject();
 
             Settings settings = Settings.builder().put("number_of_shards", 5).put("number_of_replicas", 0).build();
-            CreateIndexRequest extest = new CreateIndexRequest("extest", settings);
+            CreateIndexRequest extest = new CreateIndexRequest(index, settings);
             extest.mapping("doc",mapping);
 
             CreateIndexResponse createIndexResponse = restHighLevelClient.indices().create(extest, RequestOptions.DEFAULT);
@@ -99,10 +107,24 @@ public class DocumentService {
     }
 
     /**
+     * 检查索引是否存在
+     */
+    public void exists() throws IOException {
+
+        GetIndexRequest getIndexRequest = new GetIndexRequest();
+        getIndexRequest.indices(index);
+
+        boolean exists = restHighLevelClient.indices().exists(getIndexRequest, RequestOptions.DEFAULT);
+        if(exists){
+
+        }
+    }
+
+    /**
      * 删除索引
      */
     public void deleteIndex(){
-        DeleteIndexRequest extest = new DeleteIndexRequest("extest");
+        DeleteIndexRequest extest = new DeleteIndexRequest(index);
         try {
             AcknowledgedResponse delete = restHighLevelClient.indices().delete(extest, RequestOptions.DEFAULT);
             //是否删除成功
@@ -113,24 +135,25 @@ public class DocumentService {
     }
 
     /**
-     * 创建文档
+     * 创建文档---手动指定id
      * @return
      */
-    public String addDocument(){
-        IndexRequest doc = new IndexRequest("extest", "doc");
+    public String addDocument(String id){
+        IndexRequest doc = new IndexRequest(index, type,id);
 
         JSONObject jsonObject = new JSONObject();
         jsonObject.put("name","张三");
         jsonObject.put("address","北京市");
-        byte[] bytes = JSONObject.toJSONBytes(jsonObject);
         //设置文档内容
-        doc.source(bytes, XContentType.JSON);
+        doc.source(JSON.toJSONString(jsonObject), XContentType.JSON);
         try {
-            IndexResponse index = restHighLevelClient.index(doc, RequestOptions.DEFAULT);
-            if(Objects.isNull(index) || index.status().getStatus() == 0){
+            IndexResponse indexResponse = restHighLevelClient.index(doc, RequestOptions.DEFAULT);
+            DocWriteResponse.Result result = indexResponse.getResult();
+
+            if(Objects.isNull(indexResponse) || indexResponse.status().getStatus() == 0){
                 throw new RuntimeException("文档创建失败");
             }
-            return index.getId();
+            return indexResponse.getId();
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -144,7 +167,7 @@ public class DocumentService {
      */
     public void getDocument(String id){
 
-        GetRequest doc = new GetRequest("extest", "doc", id);
+        GetRequest doc = new GetRequest(index, type, id);
         try {
             GetResponse documentFields = restHighLevelClient.get(doc, RequestOptions.DEFAULT);
             if(documentFields.isExists()){
@@ -164,15 +187,13 @@ public class DocumentService {
     public void updateDocument(String id) {
         try {
             // 创建索引请求对象
-            UpdateRequest updateRequest = new UpdateRequest("extest", "doc", id);
+            UpdateRequest updateRequest = new UpdateRequest(index, type, id);
             // 设置员工更新信息
             JSONObject userInfo = new JSONObject();
             userInfo.put("name","200f");
             userInfo.put("address","北京市海淀区");
-            // 将对象转换为 byte 数组
-            byte[] json = JSON.toJSONBytes(userInfo);
             // 设置更新文档内容
-            updateRequest.doc(json, XContentType.JSON);
+            updateRequest.doc(JSON.toJSONString(userInfo), XContentType.JSON);
             // 执行更新文档
             UpdateResponse response = restHighLevelClient.update(updateRequest, RequestOptions.DEFAULT);
             log.info("创建状态：{}", response.status());
@@ -187,7 +208,7 @@ public class DocumentService {
     public void deleteDocument(String id) {
         try {
             // 创建删除请求对象
-            DeleteRequest deleteRequest = new DeleteRequest("extest", "doc", id);
+            DeleteRequest deleteRequest = new DeleteRequest(index, type, id);
             // 执行删除文档
             DeleteResponse response = restHighLevelClient.delete(deleteRequest, RequestOptions.DEFAULT);
             log.info("删除状态：{}", response.status());
@@ -196,16 +217,50 @@ public class DocumentService {
         }
     }
 
+
     /**
-     * 精确查询（查询条件不会进行分词，但是查询内容可能会分词，导致查询不到）
+     * 批量创建
+     */
+    public void batchCreateDoc() throws IOException {
+        BulkRequest bulkRequest = new BulkRequest();
+        bulkRequest.add(new IndexRequest(index,type,"").source("",XContentType.JSON));
+        bulkRequest.add(new IndexRequest(index,type,"").source("",XContentType.JSON));
+
+        BulkResponse bulk = restHighLevelClient.bulk(bulkRequest, RequestOptions.DEFAULT);
+
+    }
+
+    /**
+     * 批量删除
+     */
+    public void batchDeleteDoc() throws IOException {
+        BulkRequest bulkRequest = new BulkRequest();
+        bulkRequest.add(new DeleteRequest(index,type,""));
+        bulkRequest.add(new DeleteRequest(index,type,""));
+
+        BulkResponse bulk = restHighLevelClient.bulk(bulkRequest, RequestOptions.DEFAULT);
+
+    }
+
+
+
+    /**
+     * 精确查询--完全匹配，不会对搜索的关键词进行分词，如果查询的text，text被分词就查不到，不是只能查keyword类型，
+     * 相当于mysql where address =
+     *
      */
     public void termQuery(){
-        // 构建查询条件（注意：termQuery 支持多种格式查询，如 boolean、int、double、string 等，这里使用的是 string 的查询）
-        SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
-        searchSourceBuilder.query(QueryBuilders.termQuery("address.keyword","上海"));
 
         //创建查询请求对象，将查询对象配置到其中
-        SearchRequest searchRequest = new SearchRequest("extest");
+        SearchRequest searchRequest = new SearchRequest(index);
+        searchRequest.types(type);
+
+        // 构建查询条件（注意：termQuery 支持多种格式查询，如 boolean、int、double、string 等，这里使用的是 string 的查询）
+        SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
+        //分页，可选
+        //searchSourceBuilder.from(0);
+        //searchSourceBuilder.size(5);
+        searchSourceBuilder.query(QueryBuilders.termQuery("address","上海"));
         searchRequest.source(searchSourceBuilder);
 
         try {
@@ -215,6 +270,7 @@ public class DocumentService {
                 for (SearchHit hit : hits) {
                     String sourceAsString = hit.getSourceAsString();
                     log.info("sourceAsString{}",sourceAsString);
+                    JSONObject.parseObject(sourceAsString);
                 }
             }
         } catch (IOException e) {
@@ -224,14 +280,16 @@ public class DocumentService {
 
     /**
      * 多个内容在一个字段中进行查询
+     * 相当于mysql where address in
      */
     public void termsQuery(){
         try{
             // 构建查询条件（注意：termsQuery 支持多种格式查询，如 boolean、int、double、string 等，这里使用的是 string 的查询）
             SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
-            searchSourceBuilder.query(QueryBuilders.termsQuery("address.keyword", "北京市丰台区", "北京市昌平区", "北京市大兴区"));
+            searchSourceBuilder.query(QueryBuilders.termsQuery("address", "北京市丰台区", "北京市昌平区", "北京市大兴区"));
             // 创建查询请求对象，将查询对象配置到其中
-            SearchRequest searchRequest = new SearchRequest("extest");
+            SearchRequest searchRequest = new SearchRequest(index);
+            searchRequest.types(type);
             searchRequest.source(searchSourceBuilder);
             // 执行查询，然后处理响应结果
             SearchResponse searchResponse = restHighLevelClient.search(searchRequest, RequestOptions.DEFAULT);
@@ -239,7 +297,7 @@ public class DocumentService {
             if (RestStatus.OK.equals(searchResponse.status()) && searchResponse.getHits().totalHits > 0) {
                 SearchHits hits = searchResponse.getHits();
                 for (SearchHit hit : hits) {
-
+                    String sourceAsString = hit.getSourceAsString();
                 }
             }
         }catch (IOException e) {
@@ -248,7 +306,17 @@ public class DocumentService {
     }
 
     /**
-     * 匹配查询符合条件的所有数据，并设置分页
+     * match查询属于高层查询，他会根据你查询的字段类型不一样，采用不同的查询方式
+     * 1，查询的是日期或者数值的话，他会将你基于字符串查询内容转换为日期或者数值对待。
+     * 2，如果查询的内容是一个不能被分词的内容(keyword)，match查询不会对你指定的查询关键字进行分词
+     * 3，如果查询的内容是一个可以被分词的内容(text),match会将你指定的查询内容根据一定的方式去分词
+     *，去分词库中匹配指定的内容
+     * match查询，实际顶层就是多个term查询，将多个term查询的结果封装一起
+     */
+
+    /**
+     * 匹配查询符合条件的所有数据，不指定查询内容
+     * es查询的内容多的话，默认10条
      * @return
      */
     public Object matchAllQuery(){
@@ -260,14 +328,14 @@ public class DocumentService {
         searchSourceBuilder.query(matchAllQueryBuilder);
 
         // 设置分页
-        searchSourceBuilder.from(0);
-        searchSourceBuilder.size(3);
+        //searchSourceBuilder.from(0);
+        //searchSourceBuilder.size(3);
 
         // 设置排序
         searchSourceBuilder.sort("address", SortOrder.ASC);
 
         // 创建查询请求对象，将查询对象配置到其中
-        SearchRequest searchRequest = new SearchRequest("extest");
+        SearchRequest searchRequest = new SearchRequest(index);
         searchRequest.source(searchSourceBuilder);
 
         // 执行查询，然后处理响应结果
@@ -294,9 +362,9 @@ public class DocumentService {
     public Object matchQuery(){
         // 构建查询条件
         SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
-        searchSourceBuilder.query(QueryBuilders.matchQuery("address", "*通州区"));
+        searchSourceBuilder.query(QueryBuilders.matchQuery("address", "通州区"));
         // 创建查询请求对象，将查询对象配置到其中
-        SearchRequest searchRequest = new SearchRequest("extest");
+        SearchRequest searchRequest = new SearchRequest(index);
         searchRequest.source(searchSourceBuilder);
         // 执行查询，然后处理响应结果
         SearchResponse searchResponse = null;
