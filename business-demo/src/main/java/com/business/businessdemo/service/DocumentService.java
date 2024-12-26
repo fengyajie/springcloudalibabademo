@@ -29,6 +29,7 @@ import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentFactory;
 import org.elasticsearch.common.xcontent.XContentType;
 import org.elasticsearch.index.query.MatchAllQueryBuilder;
+import org.elasticsearch.index.query.Operator;
 import org.elasticsearch.index.query.QueryBuilder;
 import org.elasticsearch.index.query.QueryBuilders;
 import org.elasticsearch.rest.RestStatus;
@@ -41,6 +42,7 @@ import org.springframework.stereotype.Service;
 
 import java.io.IOException;
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Objects;
 
 @Slf4j
@@ -336,6 +338,7 @@ public class DocumentService {
 
         // 创建查询请求对象，将查询对象配置到其中
         SearchRequest searchRequest = new SearchRequest(index);
+        searchRequest.types(type);
         searchRequest.source(searchSourceBuilder);
 
         // 执行查询，然后处理响应结果
@@ -365,6 +368,7 @@ public class DocumentService {
         searchSourceBuilder.query(QueryBuilders.matchQuery("address", "通州区"));
         // 创建查询请求对象，将查询对象配置到其中
         SearchRequest searchRequest = new SearchRequest(index);
+        searchRequest.types(type);
         searchRequest.source(searchSourceBuilder);
         // 执行查询，然后处理响应结果
         SearchResponse searchResponse = null;
@@ -382,6 +386,158 @@ public class DocumentService {
         }
 
         return null;
+    }
+
+    /**
+     * Operator.OR 匹配通州区或者 海淀区，AND匹配通州区和 海淀区
+     */
+    public void booleanMatch(){
+        // 构建查询条件
+        SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
+        searchSourceBuilder.query(QueryBuilders.matchQuery("address", "通州区 海淀区").operator(Operator.OR));
+        // 创建查询请求对象，将查询对象配置到其中
+        SearchRequest searchRequest = new SearchRequest(index);
+        searchRequest.types(type);
+        searchRequest.source(searchSourceBuilder);
+        // 执行查询，然后处理响应结果
+        SearchResponse searchResponse = null;
+        try {
+            searchResponse = restHighLevelClient.search(searchRequest, RequestOptions.DEFAULT);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        // 根据状态和数据条数验证是否返回了数据
+        if (RestStatus.OK.equals(searchResponse.status()) && searchResponse.getHits().totalHits > 0) {
+            SearchHits hits = searchResponse.getHits();
+            for (SearchHit hit : hits) {
+                String sourceAsString = hit.getSourceAsString();
+            }
+        }
+    }
+
+    /**
+     * 针对多个field做检索
+     */
+    public void multiMatch(){
+
+        // 构建查询条件
+        SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
+        searchSourceBuilder.query(QueryBuilders.multiMatchQuery("北京","address","name"));
+        // 创建查询请求对象，将查询对象配置到其中
+        SearchRequest searchRequest = new SearchRequest(index);
+        searchRequest.types(type);
+        searchRequest.source(searchSourceBuilder);
+        // 执行查询，然后处理响应结果
+        SearchResponse searchResponse = null;
+        try {
+            searchResponse = restHighLevelClient.search(searchRequest, RequestOptions.DEFAULT);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        // 根据状态和数据条数验证是否返回了数据
+        if (RestStatus.OK.equals(searchResponse.status()) && searchResponse.getHits().totalHits > 0) {
+            SearchHits hits = searchResponse.getHits();
+            for (SearchHit hit : hits) {
+                String sourceAsString = hit.getSourceAsString();
+            }
+        }
+    }
+
+    /**
+     * 根据id查询
+     * @param id
+     * @throws IOException
+     */
+    public void findById(String id) throws IOException {
+        // 构建查询条件
+        GetRequest getRequest = new GetRequest(index,type,id);
+
+        GetResponse getResponse = restHighLevelClient.get(getRequest, RequestOptions.DEFAULT);
+
+        String sourceAsString = getResponse.getSourceAsString();
+    }
+
+
+    /**
+     * 根据ids查询
+     */
+    public void findByIds(List<String> ids){
+        // 构建查询条件
+        SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
+        searchSourceBuilder.query(QueryBuilders.idsQuery().addIds(ids.get(0),ids.get(1)));
+        // 创建查询请求对象，将查询对象配置到其中
+        SearchRequest searchRequest = new SearchRequest(index);
+        searchRequest.types(type);
+        searchRequest.source(searchSourceBuilder);
+        // 执行查询，然后处理响应结果
+        SearchResponse searchResponse = null;
+        try {
+            searchResponse = restHighLevelClient.search(searchRequest, RequestOptions.DEFAULT);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        // 根据状态和数据条数验证是否返回了数据
+        if (RestStatus.OK.equals(searchResponse.status()) && searchResponse.getHits().totalHits > 0) {
+            SearchHits hits = searchResponse.getHits();
+            for (SearchHit hit : hits) {
+                String sourceAsString = hit.getSourceAsString();
+            }
+        }
+    }
+
+    /**
+     * 前缀查询
+     */
+    public void findByPrefix(){
+
+        // 构建查询条件
+        SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
+        searchSourceBuilder.query(QueryBuilders.prefixQuery("address","上海"));
+        // 创建查询请求对象，将查询对象配置到其中
+        SearchRequest searchRequest = new SearchRequest(index);
+        searchRequest.types(type);
+        searchRequest.source(searchSourceBuilder);
+        // 执行查询，然后处理响应结果
+        SearchResponse searchResponse = null;
+        try {
+            searchResponse = restHighLevelClient.search(searchRequest, RequestOptions.DEFAULT);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        // 根据状态和数据条数验证是否返回了数据
+        if (RestStatus.OK.equals(searchResponse.status()) && searchResponse.getHits().totalHits > 0) {
+            SearchHits hits = searchResponse.getHits();
+            for (SearchHit hit : hits) {
+                String sourceAsString = hit.getSourceAsString();
+            }
+        }
+    }
+
+    /**
+     * 模糊查询
+     */
+    public void fuzzyFind(){
+        // 构建查询条件
+        SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
+        searchSourceBuilder.query(QueryBuilders.fuzzyQuery("address","上海"));
+        // 创建查询请求对象，将查询对象配置到其中
+        SearchRequest searchRequest = new SearchRequest(index);
+        searchRequest.types(type);
+        searchRequest.source(searchSourceBuilder);
+        // 执行查询，然后处理响应结果
+        SearchResponse searchResponse = null;
+        try {
+            searchResponse = restHighLevelClient.search(searchRequest, RequestOptions.DEFAULT);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        // 根据状态和数据条数验证是否返回了数据
+        if (RestStatus.OK.equals(searchResponse.status()) && searchResponse.getHits().totalHits > 0) {
+            SearchHits hits = searchResponse.getHits();
+            for (SearchHit hit : hits) {
+                String sourceAsString = hit.getSourceAsString();
+            }
+        }
     }
 
 }
