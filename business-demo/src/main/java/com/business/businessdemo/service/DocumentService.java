@@ -627,4 +627,12 @@ public class DocumentService {
         }
     }
 
+
+    /**
+     * ES对from+size分页是有限制的，两者之和不能超过1w
+     */
+    public void scrollFind(){
+
+    }
+
 }
