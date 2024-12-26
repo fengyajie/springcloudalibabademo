@@ -519,7 +519,94 @@ public class DocumentService {
     public void fuzzyFind(){
         // 构建查询条件
         SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
-        searchSourceBuilder.query(QueryBuilders.fuzzyQuery("address","上海"));
+        //模糊查询，前三个字不允许错别字
+        searchSourceBuilder.query(QueryBuilders.fuzzyQuery("address","上海").prefixLength(2));
+        // 创建查询请求对象，将查询对象配置到其中
+        SearchRequest searchRequest = new SearchRequest(index);
+        searchRequest.types(type);
+        searchRequest.source(searchSourceBuilder);
+        // 执行查询，然后处理响应结果
+        SearchResponse searchResponse = null;
+        try {
+            searchResponse = restHighLevelClient.search(searchRequest, RequestOptions.DEFAULT);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        // 根据状态和数据条数验证是否返回了数据
+        if (RestStatus.OK.equals(searchResponse.status()) && searchResponse.getHits().totalHits > 0) {
+            SearchHits hits = searchResponse.getHits();
+            for (SearchHit hit : hits) {
+                String sourceAsString = hit.getSourceAsString();
+            }
+        }
+    }
+
+    /**
+     * 通配查询
+     */
+    public void wildcardFind(){
+        // 构建查询条件
+        SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
+        //查询到上海xx，使用*和?来实现通配和占位符
+        searchSourceBuilder.query(QueryBuilders.wildcardQuery("address","上海??"));
+        // 创建查询请求对象，将查询对象配置到其中
+        SearchRequest searchRequest = new SearchRequest(index);
+        searchRequest.types(type);
+        searchRequest.source(searchSourceBuilder);
+        // 执行查询，然后处理响应结果
+        SearchResponse searchResponse = null;
+        try {
+            searchResponse = restHighLevelClient.search(searchRequest, RequestOptions.DEFAULT);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        // 根据状态和数据条数验证是否返回了数据
+        if (RestStatus.OK.equals(searchResponse.status()) && searchResponse.getHits().totalHits > 0) {
+            SearchHits hits = searchResponse.getHits();
+            for (SearchHit hit : hits) {
+                String sourceAsString = hit.getSourceAsString();
+            }
+        }
+    }
+
+    /**
+     * 对某一字段进行数值范围查询
+     */
+    public void rangeFind(){
+        // 构建查询条件
+        SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
+        //gt:>,gte:>=,lt:<,lte:<=
+        searchSourceBuilder.query(QueryBuilders.rangeQuery("age").gt(10));
+        // 创建查询请求对象，将查询对象配置到其中
+        SearchRequest searchRequest = new SearchRequest(index);
+        searchRequest.types(type);
+        searchRequest.source(searchSourceBuilder);
+        // 执行查询，然后处理响应结果
+        SearchResponse searchResponse = null;
+        try {
+            searchResponse = restHighLevelClient.search(searchRequest, RequestOptions.DEFAULT);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        // 根据状态和数据条数验证是否返回了数据
+        if (RestStatus.OK.equals(searchResponse.status()) && searchResponse.getHits().totalHits > 0) {
+            SearchHits hits = searchResponse.getHits();
+            for (SearchHit hit : hits) {
+                String sourceAsString = hit.getSourceAsString();
+            }
+        }
+    }
+
+
+    /**
+     * 可以根据正则表达式查询
+     */
+    public void regexpFind(){
+
+        // 构建查询条件
+        SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
+        //gt:>,gte:>=,lt:<,lte:<=
+        searchSourceBuilder.query(QueryBuilders.regexpQuery("address",""));
         // 创建查询请求对象，将查询对象配置到其中
         SearchRequest searchRequest = new SearchRequest(index);
         searchRequest.types(type);
