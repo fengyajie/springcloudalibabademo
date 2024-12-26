@@ -46,32 +46,37 @@ public class DocumentService {
                     .startObject()
                     .field("dynamic", true)
 
-                    .startObject("properties")
+                      .startObject("properties")
 
-                    .startObject("name")
-                    .field("type", "text")
-                    .startObject("fields")
-                    .startObject("keyword")
-                    .field("type", "keyword")
-                    .endObject()
-                    .endObject()
-                    .endObject()
+                        .startObject("name")
+                            .field("type", "text")
+                            /*.startObject("fields")
+                                .startObject("keyword")
+                                .field("type", "keyword")
+                                .endObject()
+                            .endObject()*/
+                        .endObject()
 
-                    .startObject("address")
-                    .field("type", "text")
-                    .startObject("fields")
-                    .startObject("keyword")
-                    .field("type", "keyword")
-                    .endObject()
-                    .endObject()
-                    .endObject()
+                        .startObject("address")
+                        .field("type", "text")
+                        /*.startObject("fields")
+                        .startObject("keyword")
+                        .field("type", "keyword")
+                        .endObject()
+                        .endObject()*/
+                        .endObject()
 
-                    .endObject()
+                        .startObject("birthday")
+                          .field("type","date")
+                          .field("format","yyyy-MM-dd")
+                        .endObject()
+
+                      .endObject()
 
 
                     .endObject();
 
-            Settings settings = Settings.builder().put("index.number_of_shards", 5).put("index.number_of_replicas", 0).build();
+            Settings settings = Settings.builder().put("number_of_shards", 5).put("number_of_replicas", 0).build();
             CreateIndexRequest extest = new CreateIndexRequest("extest", settings);
             extest.mapping("doc",mapping);
 
