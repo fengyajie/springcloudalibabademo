@@ -356,7 +356,7 @@ public class DocumentService {
     }
 
     /**
-     * 匹配查询数据--相当于模糊查询
+     * 匹配查询数据,如果查询内容是text，查询关键字会被分词去分词库查询
      * @return
      */
     public Object matchQuery(){
