@@ -16,8 +16,7 @@ import org.elasticsearch.action.get.GetRequest;
 import org.elasticsearch.action.get.GetResponse;
 import org.elasticsearch.action.index.IndexRequest;
 import org.elasticsearch.action.index.IndexResponse;
-import org.elasticsearch.action.search.SearchRequest;
-import org.elasticsearch.action.search.SearchResponse;
+import org.elasticsearch.action.search.*;
 import org.elasticsearch.action.support.master.AcknowledgedResponse;
 import org.elasticsearch.action.update.UpdateRequest;
 import org.elasticsearch.action.update.UpdateResponse;
@@ -25,6 +24,7 @@ import org.elasticsearch.client.RequestOptions;
 import org.elasticsearch.client.RestHighLevelClient;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentFactory;
 import org.elasticsearch.common.xcontent.XContentType;
@@ -630,8 +630,64 @@ public class DocumentService {
 
     /**
      * ES对from+size分页是有限制的，两者之和不能超过1w
+     * ES的查询方式：第一步先将用户指定的关键字进行分词 第二步将词汇去分词库中进行检索，得到多个文档的id  第三步去各个分片中去拉取指定的数据（耗性能）
+     *  第四步将数据根据score进行排序（耗时） 第五步根据form的值，将查询到的数据舍弃一部分，第六步返回结果
+     *
+     * Scorll查询es方式  第一步先将用户指定的关键字进行分词  第二步将词汇去分词库中进行检索，得到多个文档的id
+     * 第三步  将文档的id存放在es上下文
+     * 第四步根据指定的size去es检索数据，拿完数据的文档id会从上下文中移除
+     * 第五步 如果需要下一页数据，直接去es的上下文中找后续内容，也就是内存中找，数据不是实时的
+     * 第六步循环第四步第五步
+     * scroll不适合去实时查询
      */
-    public void scrollFind(){
+    public void scrollFind() throws IOException {
+        
+        // 创建查询请求对象，将查询对象配置到其中
+        SearchRequest searchRequest = new SearchRequest(index);
+        searchRequest.types(type);
+
+        searchRequest.scroll(TimeValue.timeValueMinutes(1L));
+        SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
+        searchSourceBuilder.size(4);
+        searchSourceBuilder.sort("address",SortOrder.DESC);
+        searchSourceBuilder.query(QueryBuilders.matchAllQuery());
+        
+        searchRequest.source(searchSourceBuilder);
+        // 执行查询，然后处理响应结果
+        SearchResponse searchResponse = null;
+        try {
+            searchResponse = restHighLevelClient.search(searchRequest, RequestOptions.DEFAULT);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        String scrollId = searchResponse.getScrollId();
+        // 根据状态和数据条数验证是否返回了数据
+        if (RestStatus.OK.equals(searchResponse.status()) && searchResponse.getHits().totalHits > 0) {
+            SearchHits hits = searchResponse.getHits();
+            for (SearchHit hit : hits) {
+                String sourceAsString = hit.getSourceAsString();
+            }
+        }
+
+        while (true){
+            SearchScrollRequest searchScrollRequest = new SearchScrollRequest(scrollId);
+            searchScrollRequest.scroll(TimeValue.timeValueMinutes(1L));
+
+            SearchResponse scroll = restHighLevelClient.scroll(searchScrollRequest, RequestOptions.DEFAULT);
+            log.info("scroll{}",JSON.toJSONString(scroll));
+            if(scroll.getHits().getHits() != null & scroll.getHits().getHits().length > 0){
+                for (SearchHit hit : scroll.getHits()) {
+                    String sourceAsString = hit.getSourceAsString();
+                }
+            }else{
+                break;
+            }
+        }
+
+        //删除scrollid
+        ClearScrollRequest clearScrollRequest =  new ClearScrollRequest();
+        clearScrollRequest.addScrollId(scrollId);
+        ClearScrollResponse clearScrollResponse = restHighLevelClient.clearScroll(clearScrollRequest, RequestOptions.DEFAULT);
 
     }
 
